@@ -19,6 +19,8 @@ def load_secrets_fron_env():
             "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
             "OLLAMA_HOST": os.getenv("OLLAMA_HOST"),
             "XAI_API_KEY": os.getenv("XAI_API_KEY"),
+            "DEEPSEEK_API_KEY": os.getenv("DEEPSEEK_API_KEY"),
+            "DEEPSEEK_BASE_URL": os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1/"),
         }
     else:
         st.session_state.env_vars = st.session_state.env_vars
@@ -90,6 +92,24 @@ def create_ollama_llm(model, temperature):
     else:
         raise ValueError("Ollama Host is not set in .env file")
 
+def create_deepseek_llm(model, temperature):
+    host = st.session_state.env_vars.get("DEEPSEEK_BASE_URL")
+    api_key = st.session_state.env_vars.get("DEEPSEEK_API_KEY")
+
+    if not host or not api_key:
+        raise ValueError("DEEPSEEK_BASE_URL and DEEPSEEK_API_KEY must be set in .env file")
+
+    switch_environment({
+        "OPENAI_API_KEY": api_key,
+        "OPENAI_API_BASE": host,
+    })
+
+    return LLM(
+        model="deepseek/deepseek-chat",  # Format correct pour DeepSeek selon liteLLM
+        temperature=temperature,
+        api_key=api_key,
+        base_url=host
+    )
 
 def create_xai_llm(model, temperature):
     host = "https://api.x.ai/v1"
@@ -148,9 +168,13 @@ LLM_CONFIG = {
         "models": ["lms-default"],
         "create_llm": create_lmstudio_llm,
     },
-     "Xai": {
+    "Xai": {
         "models": ["xai/grok-2-1212", "xai/grok-beta"],
         "create_llm": create_xai_llm,
+    },
+    "DeepSeek": {
+        "models": ["deepseek/deepseek-chat"],
+        "create_llm": create_deepseek_llm,
     },
 }
 
